@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>소인수분해 필수유형(1)</title>
+  <style>
+    body {
+      background-color: #ffffff;
+      color: #000000;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    #startScreen, #endScreen {
+      text-align: center;
+      margin-top: 50px;
+    }
+    #gameScreen {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    #gameInfo {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    #energyBarContainer {
+      width: 100%;
+      height: 20px;
+      background-color: #cccccc;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    #energyBar {
+      height: 100%;
+      background-color: #000000;
+      width: 100%;
+      transition: width 0.1s linear;
+    }
+    .choice {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      background-color: #f0f0f0;
+      border: 1px solid #000000;
+      cursor: pointer;
+      text-align: left;
+    }
+    .disabled {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    #feedback {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+</head>
+<body>
+  <!-- 시작 화면 -->
+  <div id="startScreen">
+    <h1>소인수분해 필수유형(1)</h1>
+    <label for="playerName">이름:</label>
+    <input type="text" id="playerName" placeholder="이름을 입력하세요">
+    <br><br>
+    <label for="difficulty">난이도 선택:</label>
+    <select id="difficulty">
+      <option value="최상">최상 (문제당 20점, 20초 제한)</option>
+      <option value="상">상 (문제당 15점, 30초 제한)</option>
+      <option value="중">중 (문제당 13점, 40초 제한)</option>
+      <option value="하">하 (문제당 10점, 시간 제한 없음)</option>
+    </select>
+    <br><br>
+    <button id="startButton">게임 시작</button>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="gameScreen" style="display:none;">
+    <div id="gameInfo">
+      <span id="scoreDisplay">점수: 0</span>
+      <span id="livesDisplay">남은 기회: 3</span>
+      <span id="timeDisplay">전체 게임 시간: 0초</span>
+    </div>
+    <div id="energyBarContainer">
+      <div id="energyBar"></div>
+    </div>
+    <div id="questionContainer">
+      <!-- 문제 내용이 동적으로 들어갑니다 -->
+    </div>
+    <div id="feedback"></div>
+  </div>
+
+  <!-- 게임 종료 화면 -->
+  <div id="endScreen" style="display:none;">
+    <h2>게임 종료</h2>
+    <p id="finalScore"></p>
+    <button id="submitScoreButton">점수전송</button>
+    <p id="response"></p>
+  </div>
+
+  <script>
+    // 문제 데이터 (총 40문항: 유형 A, B, C, D 각각 10문항)
+    const questions = [
+      // [유형 A] 서로 다른 두 소수의 합으로 나타내는 방법
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(58\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(3\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(66\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(6\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(70\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(5\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(76\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(5\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(82\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(4\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(86\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(4\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(92\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(4\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(100\\)을 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(6\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(94\\)를 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(4\\text{가지}\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 방법의 수를 구하시오: \\(80\\)을 서로 다른 두 소수의 합으로 나타내는 방법의 수는 몇 가지인가?",
+        choices: ["\\(2\\text{가지}\\)", "\\(3\\text{가지}\\)", "\\(4\\text{가지}\\)", "\\(5\\text{가지}\\)", "\\(6\\text{가지}\\)"],
+        correct: "\\(4\\text{가지}\\)"
+      },
+      // [유형 B] \\(a^n\\)을 10으로 나눈 나머지 (10은 변경하지 않음)
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(3^{2020}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(1\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(3^{2021}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(3\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(3^{2022}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(9\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(3^{2023}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(7\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(7^{2020}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(1\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(7^{2021}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(7\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(7^{2022}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(9\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(7^{2023}\\).",
+        choices: ["\\(1\\)", "\\(3\\)", "\\(9\\)", "\\(7\\)", "\\(5\\)"],
+        correct: "\\(3\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(2^{2020}\\).",
+        choices: ["\\(6\\)", "\\(2\\)", "\\(4\\)", "\\(8\\)", "\\(0\\)"],
+        correct: "\\(6\\)"
+      },
+      {
+        question: "다음 수를 10으로 나누었을 때의 나머지를 구하시오: \\(2^{2021}\\).",
+        choices: ["\\(6\\)", "\\(2\\)", "\\(4\\)", "\\(8\\)", "\\(0\\)"],
+        correct: "\\(2\\)"
+      },
+      // [유형 C] 3개의 소인수를 가지면서 주어진 범위에 속하는 자연수
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 20보다 크고 35보다 작은 수이다.",
+        choices: ["\\(26\\)", "\\(28\\)", "\\(30\\)", "\\(32\\)", "\\(34\\)"],
+        correct: "\\(30\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 30보다 크고 45보다 작은 수이다.",
+        choices: ["\\(36\\)", "\\(42\\)", "\\(40\\)", "\\(44\\)", "\\(38\\)"],
+        correct: "\\(42\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 40보다 크고 50보다 작은 수이다.",
+        choices: ["\\(41\\)", "\\(42\\)", "\\(43\\)", "\\(44\\)", "\\(45\\)"],
+        correct: "\\(42\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 60보다 크고 70보다 작은 수이다.",
+        choices: ["\\(62\\)", "\\(64\\)", "\\(66\\)", "\\(68\\)", "\\(70\\)"],
+        correct: "\\(66\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 40보다 크고 44보다 작은 수이다.",
+        choices: ["\\(40\\)", "\\(41\\)", "\\(42\\)", "\\(43\\)", "\\(44\\)"],
+        correct: "\\(42\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 75보다 크고 80보다 작은 수이다.",
+        choices: ["\\(76\\)", "\\(77\\)", "\\(78\\)", "\\(79\\)", "\\(80\\)"],
+        correct: "\\(78\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 80보다 크고 90보다 작은 수이다.",
+        choices: ["\\(81\\)", "\\(82\\)", "\\(84\\)", "\\(87\\)", "\\(89\\)"],
+        correct: "\\(84\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 35보다 크고 50보다 작은 수이다.",
+        choices: ["\\(37\\)", "\\(39\\)", "\\(42\\)", "\\(45\\)", "\\(47\\)"],
+        correct: "\\(42\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 25보다 크고 40보다 작은 수이다.",
+        choices: ["\\(27\\)", "\\(28\\)", "\\(30\\)", "\\(33\\)", "\\(35\\)"],
+        correct: "\\(30\\)"
+      },
+      {
+        question: "다음 조건을 만족하는 자연수를 구하시오. \\(x\\)는 3개의 소인수를 가지며, 55보다 크고 65보다 작은 수이다.",
+        choices: ["\\(56\\)", "\\(58\\)", "\\(60\\)", "\\(62\\)", "\\(64\\)"],
+        correct: "\\(60\\)"
+      },
+      // [유형 D] 주어진 수의 소인수분해 정보를 바탕으로 약수 여부 판별
+      {
+        question: "다음 보기 중 \\(756\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(3^2\\times 7\\)",
+          "\\(2^2\\times 3^3\\)",
+          "\\(2^2\\times 3\\times 7\\)",
+          "\\(2^3\\times 3^2\\times 7\\)"
+        ],
+        correct: "\\(2^3\\times 3^2\\times 7\\)"
+      },
+      {
+        question: "다음 보기 중 \\(864\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2^2\\times 3\\)",
+          "\\(2^3\\times 3^2\\)",
+          "\\(2^4\\times 3\\)",
+          "\\(2^2\\times 3^3\\)",
+          "\\(2^6\\times 3^2\\)"
+        ],
+        correct: "\\(2^6\\times 3^2\\)"
+      },
+      {
+        question: "다음 보기 중 \\(540\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(3^2\\times 5\\)",
+          "\\(2^2\\times 3^2\\)",
+          "\\(2\\times 3^3\\times 5\\)",
+          "\\(2^2\\times 3^3\\times 7\\)"
+        ],
+        correct: "\\(2^2\\times 3^3\\times 7\\)"
+      },
+      {
+        question: "다음 보기 중 \\(378\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(3^2\\times 7\\)",
+          "\\(2\\times 3^2\\)",
+          "\\(3^3\\times 7\\)",
+          "\\(2^2\\times 3\\times 7\\)"
+        ],
+        correct: "\\(2^2\\times 3\\times 7\\)"
+      },
+      {
+        question: "다음 보기 중 \\(882\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 7\\)",
+          "\\(3\\times 7\\)",
+          "\\(2\\times 3\\times 7\\)",
+          "\\(3^2\\times 7\\)",
+          "\\(2^2\\times 3^2\\times 7^2\\)"
+        ],
+        correct: "\\(2^2\\times 3^2\\times 7^2\\)"
+      },
+      {
+        question: "다음 보기 중 \\(468\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(2^2\\times 3\\)",
+          "\\(2\\times 3^2\\)",
+          "\\(2^2\\times 3^2\\)",
+          "\\(2^2\\times 3^2\\times 5\\)"
+        ],
+        correct: "\\(2^2\\times 3^2\\times 5\\)"
+      },
+      {
+        question: "다음 보기 중 \\(504\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2^2\\times 3\\)",
+          "\\(2^3\\times 7\\)",
+          "\\(2^2\\times 3^2\\)",
+          "\\(3^2\\times 7\\)",
+          "\\(2^4\\times 3\\times 7\\)"
+        ],
+        correct: "\\(2^4\\times 3\\times 7\\)"
+      },
+      {
+        question: "다음 보기 중 \\(594\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(3^2\\times 11\\)",
+          "\\(2\\times 3^2\\)",
+          "\\(3^3\\times 11\\)",
+          "\\(2^2\\times 3\\times 11\\)"
+        ],
+        correct: "\\(2^2\\times 3\\times 11\\)"
+      },
+      {
+        question: "다음 보기 중 \\(1080\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(2^2\\times 3^2\\)",
+          "\\(2^3\\times 3\\)",
+          "\\(3^3\\times 5\\)",
+          "\\(2^3\\times 3^3\\times 7\\)"
+        ],
+        correct: "\\(2^3\\times 3^3\\times 7\\)"
+      },
+      {
+        question: "다음 보기 중 \\(450\\)의 약수가 아닌 것은?",
+        choices: [
+          "\\(2\\times 3\\)",
+          "\\(3^2\\times 5\\)",
+          "\\(2\\times 5^2\\)",
+          "\\(2\\times 3^2\\)",
+          "\\(2^2\\times 3\\times 5\\)"
+        ],
+        correct: "\\(2^2\\times 3\\times 5\\)"
+      }
+    ];
+
+    // 전역 변수
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let lives = 3;
+    let gameStartTime;
+    let overallTimerInterval, questionTimerInterval;
+    let currentDifficulty;
+    let timePerQuestion; // 초 단위 (하 난이도는 null)
+    let questionStartTime;
+
+    // 난이도별 시간 제한 및 배점
+    const difficultySettings = {
+      "최상": { time: 20, score: 20 },
+      "상":   { time: 30, score: 15 },
+      "중":   { time: 40, score: 13 },
+      "하":   { time: null, score: 10 }
+    };
+
+    // Fisher–Yates shuffle
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // 시작 버튼 이벤트 리스너
+    document.getElementById("startButton").addEventListener("click", () => {
+      const playerName = document.getElementById("playerName").value.trim();
+      if (!playerName) {
+        alert("이름을 입력하세요.");
+        return;
+      }
+      currentDifficulty = document.getElementById("difficulty").value;
+      timePerQuestion = difficultySettings[currentDifficulty].time;
+      document.getElementById("startScreen").style.display = "none";
+      document.getElementById("gameScreen").style.display = "block";
+      gameStartTime = Date.now();
+      overallTimerInterval = setInterval(updateOverallTimer, 1000);
+      // 문제 배열을 처음 섞은 후 진행 (전체 순서 무작위)
+      shuffleArray(questions);
+      loadNextQuestion();
+    });
+
+    // 문제 불러오기
+    function loadNextQuestion() {
+      clearInterval(questionTimerInterval);
+      document.getElementById("feedback").innerText = "";
+      let q;
+      if (currentQuestionIndex < questions.length) {
+        q = questions[currentQuestionIndex++];
+      } else {
+        // 모든 문항 소진 후에는 랜덤하게 선택
+        q = questions[Math.floor(Math.random() * questions.length)];
+      }
+      // 문제와 보기를 표시
+      const container = document.getElementById("questionContainer");
+      container.innerHTML = "";
+      const qElem = document.createElement("div");
+      qElem.innerHTML = `<p>${q.question}</p>`;
+      container.appendChild(qElem);
+      // 보기를 복사 후 섞기
+      const choices = q.choices.slice();
+      shuffleArray(choices);
+      choices.forEach(choiceText => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.innerHTML = choiceText;
+        btn.addEventListener("click", () => answerQuestion(choiceText, q.correct));
+        container.appendChild(btn);
+      });
+      // MathJax로 수식 렌더링
+      MathJax.typeset();
+      // 시간 제한이 있는 경우 에너지바 작동
+      if (timePerQuestion !== null) {
+        questionStartTime = Date.now();
+        updateEnergyBar(); // 초기 업데이트
+        questionTimerInterval = setInterval(updateEnergyBar, 100);
+      }
+    }
+
+    // 에너지바 업데이트 (시간 제한 있을 때)
+    function updateEnergyBar() {
+      const elapsed = (Date.now() - questionStartTime) / 1000;
+      const remaining = timePerQuestion - elapsed;
+      const bar = document.getElementById("energyBar");
+      if (remaining <= 0) {
+        bar.style.width = "0%";
+        clearInterval(questionTimerInterval);
+        // 시간 초과 처리: 정답과 상관없이 기회 감소
+        handleWrong("시간 초과!");
+      } else {
+        const percent = (remaining / timePerQuestion) * 100;
+        bar.style.width = percent + "%";
+      }
+    }
+
+    // 전체 게임 시간 업데이트
+    function updateOverallTimer() {
+      const elapsedSec = Math.floor((Date.now() - gameStartTime) / 1000);
+      document.getElementById("timeDisplay").innerText = `전체 게임 시간: ${elapsedSec}초`;
+    }
+
+    // 답안 처리
+    function answerQuestion(selected, correct) {
+      clearInterval(questionTimerInterval);
+      // 모든 보기 버튼 비활성화
+      document.querySelectorAll(".choice").forEach(btn => btn.classList.add("disabled"));
+      if (selected === correct) {
+        score += difficultySettings[currentDifficulty].score;
+        document.getElementById("scoreDisplay").innerText = `점수: ${score}`;
+        document.getElementById("feedback").innerText = "정답!";
+      } else {
+        lives--;
+        document.getElementById("livesDisplay").innerText = `남은 기회: ${lives}`;
+        document.getElementById("feedback").innerText = `오답! 정답은 ${correct}입니다.`;
+      }
+      MathJax.typeset();
+      setTimeout(() => {
+        if (lives <= 0) {
+          endGame();
+        } else {
+          // 에너지바를 초기화
+          document.getElementById("energyBar").style.width = "100%";
+          loadNextQuestion();
+        }
+      }, 1000);
+    }
+
+    // 시간 초과 또는 틀린 경우 처리 (정답 표시 후 기회 차감)
+    function handleWrong(msg) {
+      lives--;
+      document.getElementById("livesDisplay").innerText = `남은 기회: ${lives}`;
+      document.getElementById("feedback").innerText = `${msg} 정답은 확인해보세요.`;
+      // 모든 보기 비활성화
+      document.querySelectorAll(".choice").forEach(btn => btn.classList.add("disabled"));
+      MathJax.typeset();
+      setTimeout(() => {
+        if (lives <= 0) {
+          endGame();
+        } else {
+          document.getElementById("energyBar").style.width = "100%";
+          loadNextQuestion();
+        }
+      }, 1000);
+    }
+
+    // 게임 종료 처리
+    function endGame() {
+      clearInterval(overallTimerInterval);
+      clearInterval(questionTimerInterval);
+      document.getElementById("gameScreen").style.display = "none";
+      document.getElementById("endScreen").style.display = "block";
+      const totalTime = Math.floor((Date.now() - gameStartTime) / 1000);
+      document.getElementById("finalScore").innerText = `최종 점수: ${score}점, 전체 게임 시간: ${totalTime}초`;
+    }
+
+    // 점수 전송 함수 (서버 전송)
+    function saveData(game, name, score, elapsedTime) {
+        const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+
+        const requestData = {
+            game,
+            name,
+            score: parseInt(score, 10),
+            elapsedTime: parseInt(elapsedTime, 10)
+        };
+
+        try {
+            const response = fetch(FUNCTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            response.then(res => res.json()).then(responseData => {
+                if (response.ok) {
+                    document.getElementById('response').innerText =
+                        `성공: ${JSON.stringify(responseData, null, 2)}`;
+                } else {
+                    document.getElementById('response').innerText =
+                        `오류: ${JSON.stringify(responseData, null, 2)}`;
+                }
+            }).catch(error => {
+                console.error('요청 실패:', error);
+                document.getElementById('response').innerText =
+                    `네트워크 오류: ${error.message}`;
+            });
+        } catch (error) {
+            console.error('요청 실패:', error);
+            document.getElementById('response').innerText =
+                `네트워크 오류: ${error.message}`;
+        }
+    }
+
+    // 점수 전송 버튼 이벤트 리스너
+    document.getElementById("submitScoreButton").addEventListener("click", () => {
+      const playerName = document.getElementById("playerName").value.trim();
+      const totalTime = Math.floor((Date.now() - gameStartTime) / 1000);
+      saveData("소인수분해 필수유형(1)", playerName, score, totalTime);
+    });
+  </script>
+</body>
+</html>
